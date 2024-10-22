@@ -5,26 +5,60 @@ import os
 class ILRQuiz:
     def __init__(self):
         self.categories = ["Reading", "Writing", "Speaking", "Listening"]
-        # Previous questions dictionary remains the same
         self.questions = {
             "Reading": [
                 {"text": "I can recognize a few letters or symbols.", "weight": 1, "level": "0"},
-                # ... (previous questions remain the same)
+                {"text": "I can identify some high-frequency words and phrases.", "weight": 1.2, "level": "0+"},
+                {"text": "I can understand basic written texts on familiar topics.", "weight": 1.5, "level": "1"},
+                {"text": "I can understand routine social correspondence.", "weight": 1.7, "level": "1+"},
+                {"text": "I can scan and skim texts for relevant information.", "weight": 2, "level": "2"},
+                {"text": "I can understand most formal and informal texts.", "weight": 2.2, "level": "2+"},
+                {"text": "I can understand abstract and linguistically complex texts.", "weight": 2.5, "level": "3"},
+                {"text": "I can understand precise social and professional texts.", "weight": 2.7, "level": "3+"},
+                {"text": "I can understand all styles and forms of written language.", "weight": 3, "level": "4"},
+                {"text": "I can understand highly abstract concepts.", "weight": 3.2, "level": "4+"},
+                {"text": "I can understand sophisticated nuances equivalent to an educated native reader.", "weight": 3.5, "level": "5"}
             ],
             "Writing": [
                 {"text": "I can write a few letters or numbers.", "weight": 1, "level": "0"},
-                # ... (previous questions remain the same)
+                {"text": "I can write basic personal information.", "weight": 1.2, "level": "0+"},
+                {"text": "I can write simple phrases and sentences.", "weight": 1.5, "level": "1"},
+                {"text": "I can write short personal notes and letters.", "weight": 1.7, "level": "1+"},
+                {"text": "I can write routine social correspondence.", "weight": 2, "level": "2"},
+                {"text": "I can write detailed descriptions and narratives.", "weight": 2.2, "level": "2+"},
+                {"text": "I can write about complex topics clearly.", "weight": 2.5, "level": "3"},
+                {"text": "I can write precise professional documents.", "weight": 2.7, "level": "3+"},
+                {"text": "I can write extensively with appropriate style.", "weight": 3, "level": "4"},
+                {"text": "I can write sophisticated academic papers.", "weight": 3.2, "level": "4+"},
+                {"text": "I can write with sophistication equivalent to an educated native writer.", "weight": 3.5, "level": "5"}
             ],
             "Speaking": [
                 {"text": "I can say a few basic words.", "weight": 1, "level": "0"},
-                # ... (previous questions remain the same)
+                {"text": "I can express basic courtesies.", "weight": 1.2, "level": "0+"},
+                {"text": "I can handle basic survival situations.", "weight": 1.5, "level": "1"},
+                {"text": "I can participate in simple conversations.", "weight": 1.7, "level": "1+"},
+                {"text": "I can function in routine social situations.", "weight": 2, "level": "2"},
+                {"text": "I can discuss concrete topics with confidence.", "weight": 2.2, "level": "2+"},
+                {"text": "I can participate in formal and informal conversations.", "weight": 2.5, "level": "3"},
+                {"text": "I can defend opinions and hypothesize.", "weight": 2.7, "level": "3+"},
+                {"text": "I can discuss complex or sensitive topics fluently.", "weight": 3, "level": "4"},
+                {"text": "I can tailor language to any audience.", "weight": 3.2, "level": "4+"},
+                {"text": "I can speak with sophistication equivalent to an educated native speaker.", "weight": 3.5, "level": "5"}
             ],
             "Listening": [
                 {"text": "I can recognize a few basic words.", "weight": 1, "level": "0"},
-                # ... (previous questions remain the same)
+                {"text": "I can understand some memorized words and phrases.", "weight": 1.2, "level": "0+"},
+                {"text": "I can understand basic questions and instructions.", "weight": 1.5, "level": "1"},
+                {"text": "I can understand simple conversations on familiar topics.", "weight": 1.7, "level": "1+"},
+                {"text": "I can understand routine social conversations.", "weight": 2, "level": "2"},
+                {"text": "I can understand most formal and informal conversations.", "weight": 2.2, "level": "2+"},
+                {"text": "I can understand abstract concepts in discussions.", "weight": 2.5, "level": "3"},
+                {"text": "I can understand professional discussions in my field.", "weight": 2.7, "level": "3+"},
+                {"text": "I can understand all forms and styles of speech.", "weight": 3, "level": "4"},
+                {"text": "I can understand highly specialized speech.", "weight": 3.2, "level": "4+"},
+                {"text": "I can understand speech equivalent to an educated native listener.", "weight": 3.5, "level": "5"}
             ]
         }
-        
         self.levels = [
             {"max_score": 11, "name": "Level 0 – No Proficiency"},
             {"max_score": 13, "name": "Level 0+ – Memorized Proficiency"},
@@ -38,11 +72,83 @@ class ILRQuiz:
             {"max_score": 33, "name": "Level 4+ – Full Professional Proficiency, Plus"},
             {"max_score": float('inf'), "name": "Level 5 – Native or Bilingual Proficiency"}
         ]
-        
         self.results_file = "ilr_quiz_results.json"
 
+    def run_quiz(self):
+        """Run the ILR proficiency quiz with all questions for each category."""
+        print("Welcome to the ILR Language Proficiency Self-Assessment Quiz!")
+        
+        user_name = input("Please enter your name: ").strip()
+        language = input("Which language are you assessing? ").strip()
+        
+        print("\nThis quiz will assess your skills in Reading, Writing, Speaking, and Listening.")
+        print("For each statement, rate your ability from 1-5:")
+        print("1 = Strongly Disagree")
+        print("2 = Disagree")
+        print("3 = Neutral")
+        print("4 = Agree")
+        print("5 = Strongly Agree\n")
+
+        scores = {}
+        levels = {}
+        
+        for category in self.categories:
+            print(f"\n{category.upper()} ASSESSMENT")
+            print("-" * 50)
+            print(f"Please rate your {category.lower()} abilities:\n")
+            
+            category_score = 0
+            
+            for i, question in enumerate(self.questions[category], 1):
+                while True:
+                    try:
+                        print(f"\nQuestion {i} of {len(self.questions[category])}:")
+                        response = input(f"{question['text']}\nYour rating (1-5): ")
+                        response = int(response)
+                        
+                        if 1 <= response <= 5:
+                            weighted_score = response * question['weight']
+                            category_score += weighted_score
+                            break
+                        else:
+                            print("Please enter a number between 1 and 5.")
+                    except ValueError:
+                        print("Invalid input. Please enter a number between 1 and 5.")
+            
+            scores[category] = category_score
+            levels[category] = self.determine_level(category_score)
+            
+            print(f"\n{category} Assessment Complete!")
+            print(f"Category Score: {category_score:.2f}")
+            print(f"Category Level: {levels[category]}")
+            print("-" * 50)
+
+        overall_score = sum(scores.values()) / len(scores)
+        overall_level = self.determine_level(overall_score)
+        levels["Overall"] = overall_level
+
+        print("\nFINAL RESULTS")
+        print("=" * 50)
+        print(f"Name: {user_name}")
+        print(f"Language: {language}")
+        print("\nCategory Breakdown:")
+        print("-" * 50)
+        for category in self.categories:
+            print(f"{category:10} | Score: {scores[category]:6.2f} | {levels[category]}")
+        print("-" * 50)
+        print(f"Overall Score: {overall_score:.2f}")
+        print(f"Overall ILR Level: {overall_level}")
+        print("=" * 50)
+
+        self.save_results(user_name, language, scores, levels)
+        print("\nYour results have been saved!")
+
     def determine_level(self, score):
-        return next(level['name'] for level in self.levels if score <= level['max_score'])
+        """Determine the ILR level based on the score."""
+        for level in self.levels:
+            if score <= level['max_score']:
+                return level['name']
+        return "Error: Score out of range"
 
     def save_results(self, user_name, language, scores, levels):
         """Save quiz results to a JSON file."""
@@ -55,7 +161,6 @@ class ILRQuiz:
             "levels": levels
         }
         
-        # Load existing results or create new list
         if os.path.exists(self.results_file):
             with open(self.results_file, 'r') as f:
                 try:
@@ -65,96 +170,48 @@ class ILRQuiz:
         else:
             results = []
         
-        # Add new result
         results.append(result)
         
-        # Save updated results
         with open(self.results_file, 'w') as f:
             json.dump(results, f, indent=4)
 
     def view_results(self, user_name=None):
-        """View stored quiz results, optionally filtered by username."""
+        """View quiz results, optionally filtered by username."""
         if not os.path.exists(self.results_file):
-            print("No quiz results found.")
+            print("No results found.")
             return
 
-        with open(self.results_file, 'r') as f:
-            try:
+        try:
+            with open(self.results_file, 'r') as f:
                 results = json.load(f)
-            except json.JSONDecodeError:
-                print("Error reading results file.")
-                return
 
-        if not results:
-            print("No quiz results found.")
-            return
-
-        if user_name:
-            results = [r for r in results if r["user_name"].lower() == user_name.lower()]
             if not results:
-                print(f"No results found for user: {user_name}")
+                print("No results found.")
                 return
 
-        for result in results:
-            print("\n" + "="*50)
-            print(f"User: {result['user_name']}")
-            print(f"Language: {result['language']}")
-            print(f"Date: {result['date']}")
-            print("\nCategory Scores:")
-            print("-"*50)
-            for category in self.categories:
-                print(f"{category:10} | Score: {result['scores'][category]:6.2f} | {result['levels'][category]}")
-            print("-"*50)
-            print(f"Overall Level: {result['levels']['Overall']}")
-            print("="*50)
+            if user_name:
+                results = [r for r in results if r["user_name"].lower() == user_name.lower()]
+                if not results:
+                    print(f"No results found for user: {user_name}")
+                    return
 
-    def run_quiz(self):
-        print("Welcome to the ILR Language Proficiency Self-Assessment Quiz!")
-        
-        # Get user information
-        user_name = input("Please enter your name: ")
-        language = input("Which language are you assessing? ")
-        
-        print("\nThis quiz will assess your skills in Reading, Writing, Speaking, and Listening.")
-        print("For each question, please enter a number between 1 (Strongly Disagree) and 5 (Strongly Agree).\n")
+            for result in results:
+                print("\n" + "=" * 50)
+                print(f"Name: {result['user_name']}")
+                print(f"Language: {result['language']}")
+                print(f"Date: {result['date']}")
+                print("\nCategory Breakdown:")
+                print("-" * 50)
+                for category in self.categories:
+                    score = result['scores'][category]
+                    level = result['levels'][category]
+                    print(f"{category:10} | Score: {score:6.2f} | {level}")
+                print("-" * 50)
+                print(f"Overall Level: {result['levels']['Overall']}")
+                print("=" * 50)
 
-        scores = {category: 0 for category in self.categories}
-        levels = {}
-
-        for category in self.categories:
-            print(f"\n{category.upper()} ASSESSMENT")
-            print(f"Please answer the following questions about your {category.lower()} abilities:\n")
-            
-            for i, question in enumerate(self.questions[category], 1):
-                while True:
-                    try:
-                        response = int(input(f"Q{i}: {question['text']} (1-5): "))
-                        if 1 <= response <= 5:
-                            scores[category] += response * question['weight']
-                            break
-                        else:
-                            print("Please enter a number between 1 and 5.")
-                    except ValueError:
-                        print("Invalid input. Please enter a number.")
-
-        # Calculate levels for each category
-        print("\nYour ILR Proficiency Levels:")
-        print("-" * 50)
-        for category, score in scores.items():
-            levels[category] = self.determine_level(score)
-            print(f"{category:10} | Score: {score:6.2f} | {levels[category]}")
-        print("-" * 50)
-
-        # Calculate and display overall level
-        overall_score = sum(scores.values()) / len(scores)
-        overall_level = self.determine_level(overall_score)
-        levels["Overall"] = overall_level
-        print(f"\nOverall ILR Level: {overall_level}")
-        print(f"Average Score: {overall_score:.2f}")
-
-        # Save results
-        self.save_results(user_name, language, scores, levels)
-        print("\nYour results have been saved!")
+        except (json.JSONDecodeError, KeyError) as e:
+            print(f"Error reading results: {e}")
 
 def main():
     quiz = ILRQuiz()
