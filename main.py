@@ -82,7 +82,8 @@ class ILRQuiz:
         language = input("Which language are you assessing? ").strip()
         
         print("\nThis quiz will assess your skills in Reading, Writing, Speaking, and Listening.")
-        print("For each statement, rate your ability from 1-5:")
+        print("For each statement, rate your ability from 0-5:")
+        print("0 = Not at all")
         print("1 = Strongly Disagree")
         print("2 = Disagree")
         print("3 = Neutral")
@@ -103,17 +104,17 @@ class ILRQuiz:
                 while True:
                     try:
                         print(f"\nQuestion {i} of {len(self.questions[category])}:")
-                        response = input(f"{question['text']}\nYour rating (1-5): ")
+                        response = input(f"{question['text']}\nYour rating (0-5): ")
                         response = int(response)
                         
-                        if 1 <= response <= 5:
+                        if 0 <= response <= 5:  # Changed from 1-5 to 0-5
                             weighted_score = response * question['weight']
                             category_score += weighted_score
                             break
                         else:
-                            print("Please enter a number between 1 and 5.")
+                            print("Please enter a number between 0 and 5.")  # Updated error message
                     except ValueError:
-                        print("Invalid input. Please enter a number between 1 and 5.")
+                        print("Invalid input. Please enter a number between 0 and 5.")  # Updated error message
             
             scores[category] = category_score
             levels[category] = self.determine_level(category_score)
