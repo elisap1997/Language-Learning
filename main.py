@@ -1,6 +1,10 @@
 import json
 from datetime import datetime
 import os
+import hashlib
+import getpass
+import base64
+import secrets
 
 class ILRQuiz:
     def __init__(self):
@@ -72,8 +76,165 @@ class ILRQuiz:
             {"max_score": 33, "name": "Level 4+ – Full Professional Proficiency, Plus"},
             {"max_score": float('inf'), "name": "Level 5 – Native or Bilingual Proficiency"}
         ]
-        self.results_file = "ilr_quiz_results.json"
+        self.results_file = "ilr_quiz_results.encrypted.json"
+        self.admin_file = "admin_credentials.json"
+        self.key = None
 
+    def initialize_admin(self):
+        """Set up admin credentials if they don't exist."""
+        if not os.path.exists(self.admin_file):
+            print("\nFirst-time setup: Create admin credentials")
+            while True:
+                admin_password = getpass.getpass("Create admin password: ")
+                confirm_password = getpass.getpass("Confirm admin password: ")
+                if admin_password == confirm_password:
+                    salt = secrets.token_bytes(16)
+                    key = hashlib.pbkdf2_hmac(
+                        'sha256',
+                        admin_password.encode('utf-8'),
+                        salt,
+                        100000
+                    )
+                    admin_data = {
+                        'salt': base64.b64encode(salt).decode('utf-8'),
+                        'key': base64.b64encode(key).decode('utf-8')
+                    }
+                    with open(self.admin_file, 'w') as f:
+                        json.dump(admin_data, f)
+                    print("Admin credentials created successfully!")
+                    break
+                else:
+                    print("Passwords don't match. Please try again.")
+
+    def verify_admin(self):
+        """Verify admin credentials and set encryption key."""
+        if not os.path.exists(self.admin_file):
+            print("Admin credentials not found. Please set up first.")
+            return False
+
+        with open(self.admin_file, 'r') as f:
+            admin_data = json.load(f)
+
+        salt = base64.b64decode(admin_data['salt'])
+        stored_key = base64.b64decode(admin_data['key'])
+
+        password = getpass.getpass("Enter admin password: ")
+        key = hashlib.pbkdf2_hmac(
+            'sha256',
+            password.encode('utf-8'),
+            salt,
+            100000
+        )
+
+        if key == stored_key:
+            self.key = key
+            return True
+        return False
+
+    def encrypt_data(self, data):
+        """Encrypt data using the admin key."""
+        if not self.key:
+            raise ValueError("Encryption key not set")
+        
+        # Use key as seed for simple XOR encryption (for demonstration)
+        # In production, use proper encryption libraries like cryptography
+        data_str = json.dumps(data)
+        data_bytes = data_str.encode('utf-8')
+        key_bytes = self.key * (len(data_bytes) // len(self.key) + 1)
+        encrypted = bytes([a ^ b for a, b in zip(data_bytes, key_bytes)])
+        return base64.b64encode(encrypted).decode('utf-8')
+
+    def decrypt_data(self, encrypted_data):
+        """Decrypt data using the admin key."""
+        if not self.key:
+            raise ValueError("Encryption key not set")
+            
+        # Reverse the XOR encryption
+        encrypted_bytes = base64.b64decode(encrypted_data)
+        key_bytes = self.key * (len(encrypted_bytes) // len(self.key) + 1)
+        decrypted = bytes([a ^ b for a, b in zip(encrypted_bytes, key_bytes)])
+        return json.loads(decrypted.decode('utf-8'))
+    
+    def determine_level(self, score):
+        """Determine the ILR level based on the score."""
+        for level in self.levels:
+            if score <= level['max_score']:
+                return level['name']
+        return "Error: Score out of range"
+
+    def save_results(self, user_name, language, scores, levels):
+        """Save encrypted quiz results to a JSON file."""
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        result = {
+            "user_name": user_name,
+            "language": language,
+            "date": timestamp,
+            "scores": scores,
+            "levels": levels
+        }
+        
+        try:
+            if os.path.exists(self.results_file):
+                with open(self.results_file, 'r') as f:
+                    encrypted_data = f.read()
+                    results = self.decrypt_data(encrypted_data)
+            else:
+                results = []
+            
+            results.append(result)
+            encrypted_results = self.encrypt_data(results)
+            
+            with open(self.results_file, 'w') as f:
+                f.write(encrypted_results)
+                
+        except Exception as e:
+            print(f"Error saving results: {e}")
+            print("Results could not be saved. Please verify admin credentials.")
+
+    def view_results(self, user_name=None):
+        """View quiz results with admin authentication."""
+        if not os.path.exists(self.results_file):
+            print("No results found.")
+            return
+
+        if not self.verify_admin():
+            print("Unauthorized access. Admin authentication required.")
+            return
+
+        try:
+            with open(self.results_file, 'r') as f:
+                encrypted_data = f.read()
+                results = self.decrypt_data(encrypted_data)
+
+            if not results:
+                print("No results found.")
+                return
+
+            if user_name:
+                results = [r for r in results if r["user_name"].lower() == user_name.lower()]
+                if not results:
+                    print(f"No results found for user: {user_name}")
+                    return
+
+            for result in results:
+                print("\n" + "=" * 50)
+                print(f"Name: {result['user_name']}")
+                print(f"Language: {result['language']}")
+                print(f"Date: {result['date']}")
+                print("\nCategory Breakdown:")
+                print("-" * 50)
+                for category in self.categories:
+                    score = result['scores'][category]
+                    level = result['levels'][category]
+                    print(f"{category:10} | Score: {score:6.2f} | {level}")
+                print("-" * 50)
+                print(f"Overall Level: {result['levels']['Overall']}")
+                print("=" * 50)
+
+        except Exception as e:
+            print(f"Error reading results: {e}")
+            print("Please verify admin credentials and try again.")
+    
     def run_quiz(self):
         """Run the ILR proficiency quiz with all questions for each category."""
         print("Welcome to the ILR Language Proficiency Self-Assessment Quiz!")
@@ -141,86 +302,21 @@ class ILRQuiz:
         print(f"Overall ILR Level: {overall_level}")
         print("=" * 50)
 
-        self.save_results(user_name, language, scores, levels)
-        print("\nYour results have been saved!")
-
-    def determine_level(self, score):
-        """Determine the ILR level based on the score."""
-        for level in self.levels:
-            if score <= level['max_score']:
-                return level['name']
-        return "Error: Score out of range"
-
-    def save_results(self, user_name, language, scores, levels):
-        """Save quiz results to a JSON file."""
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        result = {
-            "user_name": user_name,
-            "language": language,
-            "date": timestamp,
-            "scores": scores,
-            "levels": levels
-        }
-        
-        if os.path.exists(self.results_file):
-            with open(self.results_file, 'r') as f:
-                try:
-                    results = json.load(f)
-                except json.JSONDecodeError:
-                    results = []
+        if self.verify_admin():
+            self.save_results(user_name, language, scores, levels)
+            print("\nYour results have been saved!")
         else:
-            results = []
-        
-        results.append(result)
-        
-        with open(self.results_file, 'w') as f:
-            json.dump(results, f, indent=4)
-
-    def view_results(self, user_name=None):
-        """View quiz results, optionally filtered by username."""
-        if not os.path.exists(self.results_file):
-            print("No results found.")
-            return
-
-        try:
-            with open(self.results_file, 'r') as f:
-                results = json.load(f)
-
-            if not results:
-                print("No results found.")
-                return
-
-            if user_name:
-                results = [r for r in results if r["user_name"].lower() == user_name.lower()]
-                if not results:
-                    print(f"No results found for user: {user_name}")
-                    return
-
-            for result in results:
-                print("\n" + "=" * 50)
-                print(f"Name: {result['user_name']}")
-                print(f"Language: {result['language']}")
-                print(f"Date: {result['date']}")
-                print("\nCategory Breakdown:")
-                print("-" * 50)
-                for category in self.categories:
-                    score = result['scores'][category]
-                    level = result['levels'][category]
-                    print(f"{category:10} | Score: {score:6.2f} | {level}")
-                print("-" * 50)
-                print(f"Overall Level: {result['levels']['Overall']}")
-                print("=" * 50)
-
-        except (json.JSONDecodeError, KeyError) as e:
-            print(f"Error reading results: {e}")
-
+            print("\nUnable to save results - admin verification required.")
+    
 def main():
     quiz = ILRQuiz()
+    quiz.initialize_admin()  # Set up admin credentials if first time
+    
     while True:
         print("\nILR Language Proficiency Quiz Menu:")
         print("1. Take Quiz")
-        print("2. View All Results")
-        print("3. View Results by Username")
+        print("2. View All Results (Admin Only)")
+        print("3. View Results by Username (Admin Only)")
         print("4. Exit")
         
         choice = input("\nEnter your choice (1-4): ")
