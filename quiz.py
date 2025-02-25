@@ -90,26 +90,58 @@ class ILRQuiz:
             print("=" * 50)
 
     def run_quiz(self):
-        """Run the ILR proficiency quiz."""
-        print("Welcome to the ILR Language Proficiency Self-Assessment Quiz!")
-        
-        user_name = input("Please enter your name: ").strip()
-        language = input("Which language are you assessing? ").strip()
-        
-        self._display_instructions()
-        scores, levels = self._conduct_assessment()
-        
-        overall_score = sum(scores.values()) / len(scores)
-        overall_level = Levels.determine_level(overall_score)
-        levels["Overall"] = overall_level
+        while True:
+            print("\nILR Language Proficiency Quiz Menu:")
+            print("1. Take Quiz")
+            print("2. View All Results (Admin Only)")
+            print("3. View Results by Username (Admin Only)")
+            print("4. Reset Admin Password")
+            print("5. Exit")
+            
+            choice = input("Enter your choice (1-5): ").strip()
+            
+            if choice == '1':
+                # Existing quiz logic
+                print("Welcome to the ILR Language Proficiency Self-Assessment Quiz!")
+                
+                user_name = input("Please enter your name: ").strip()
+                language = input("Which language are you assessing? ").strip()
+                
+                self._display_instructions()
+                scores, levels = self._conduct_assessment()
+                
+                overall_score = sum(scores.values()) / len(scores)
+                overall_level = Levels.determine_level(overall_score)
+                levels["Overall"] = overall_level
 
-        self._display_final_results(user_name, language, scores, levels, overall_score, overall_level)
+                self._display_final_results(user_name, language, scores, levels, overall_score, overall_level)
 
-        if self.encryption.verify_admin():
-            self.save_results(user_name, language, scores, levels)
-            print("\nYour results have been saved!")
-        else:
-            print("\nUnable to save results - admin verification required.")
+                if self.encryption.verify_admin():
+                    self.save_results(user_name, language, scores, levels)
+                    print("\nYour results have been saved!")
+                else:
+                    print("\nUnable to save results - admin verification required.")
+            
+            elif choice == '2':
+                if self.encryption.verify_admin():
+                    self.view_results()
+            
+            elif choice == '3':
+                if self.encryption.verify_admin():
+                    user_name = input("Enter username: ").strip()
+                    self.view_results(user_name)
+            
+            elif choice == '4':
+                print("\nAdmin Password Reset")
+                admin_reset = Encryption()
+                admin_reset.reset_admin()
+            
+            elif choice == '5':
+                print("Exiting the program.")
+                break
+            
+            else:
+                print("Invalid option. Please try again.")
 
     def _display_instructions(self):
         """Display quiz instructions."""

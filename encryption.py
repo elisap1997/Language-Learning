@@ -61,6 +61,15 @@ class Encryption:
             self.key = key
             return True
         return False
+    
+    def reset_admin(self):
+        """Reset admin credentials."""
+        print("\nAdmin Password Reset")
+        if os.path.exists(self.admin_file):
+            os.remove(self.admin_file)
+        
+        print("Creating new admin credentials")
+        self.initialize_admin()
 
     def encrypt_data(self, data):
         """Encrypt data using the admin key."""
